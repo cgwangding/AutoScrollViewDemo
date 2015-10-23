@@ -41,7 +41,7 @@ typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
 /**
  *  每张图片对应的标题的
  */
-@property (copy, nonatomic) NSArray <NSString *>*titleArr;
+@property (copy, nonatomic) NSArray *titleArr;
 
 /**
  *  是否自动滚动。默认为YES.
