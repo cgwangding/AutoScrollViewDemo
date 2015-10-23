@@ -8,6 +8,8 @@
 
 #import "WDScrollView.h"
 
+#define TitleHeight 30
+
 @interface WDScrollView ()<UIScrollViewDelegate>
 
 @property (strong, nonatomic) NSTimer *timer;
@@ -21,6 +23,13 @@
  *  手势
  */
 @property (strong, nonatomic) UIPanGestureRecognizer *panGestureRecognizer;
+
+@property (assign, nonatomic) WDScrollViewLayout layout;
+
+@property (strong, nonatomic) UIPageControl *pageControl;
+
+@property (strong, nonatomic) UIView *titleView;
+@property (strong, nonatomic) UILabel *titleLabel;
 
 /**
  *  显示图片的按钮
@@ -46,12 +55,27 @@
 
 @implementation WDScrollView
 
+- (instancetype)initWithFrame:(CGRect)frame andLayout:(WDScrollViewLayout)layout
+{
+    if (self = [super initWithFrame:frame]) {
+        self.layout = layout;
+        self.autoScrollTimeinterval = 2;
+        [[NSRunLoop currentRunLoop]addTimer:self.timer forMode:NSDefaultRunLoopMode];
+        self.shouldAutoScoll = YES;
+        [self setupUIWithFrame:frame];
+        [self addObserver:self forKeyPath:@"self.currentIndex" options:NSKeyValueObservingOptionNew context:nil];
+    }
+    return self;
+}
+
 - (instancetype)initWithFrame:(CGRect)frame
 {
     if (self = [super initWithFrame:frame]) {
         self.autoScrollTimeinterval = 2;
         [[NSRunLoop currentRunLoop]addTimer:self.timer forMode:NSDefaultRunLoopMode];
+        self.shouldAutoScoll = YES;
         [self setupUIWithFrame:frame];
+        [self addObserver:self forKeyPath:@"self.currentIndex" options:NSKeyValueObservingOptionNew context:nil];
     }
     return self;
 }
@@ -66,6 +90,34 @@
     [self setButtonFrameLeft:self.leftButton];
     [self setButtonFrameCenter:self.centerButton];
     [self setButtonFrameRight:self.rightButton];
+    
+    /**
+     *  在之后设置Frame
+     */
+    [self addSubview:self.titleView];
+    [self.titleView addSubview:self.titleLabel];
+    [self addSubview:self.pageControl];
+    
+    //根据layout的不同设置
+    switch (self.layout) {
+        case WDScrollViewLayoutDefault:
+        {
+            self.titleView.frame = CGRectMake(0, CGRectGetHeight(self.frame) - TitleHeight, CGRectGetWidth(self.frame), TitleHeight);
+            self.titleLabel.frame = CGRectMake(8, 0, CGRectGetWidth(self.titleView.frame) - 8, CGRectGetHeight(self.titleView.frame));
+            //在设置pagecontrol的时候计算它的frame
+        }
+            break;
+        case WDScrollViewLayoutTiltleTopLeftPageControlBottomCenter:
+        {
+            self.titleView.frame = CGRectMake(0, 0, CGRectGetWidth(self.frame), TitleHeight);
+            self.titleLabel.frame = CGRectMake(8, 0, CGRectGetWidth(self.titleView.frame) - 8, CGRectGetHeight(self.titleView.frame));
+            //在设置pagecontrol的时候计算它的frame
+        }
+            break;
+            
+        default:
+            break;
+    }
 }
 
 - (void)panGestureValueChanged:(UIGestureRecognizer*)getsureRecognizer
@@ -102,8 +154,10 @@
                 //恢复原位
                 [self restoreFrameWithMoved:movedDistance];
             }
-            //重新启动定时器
-            [self restartTimer];
+            if (self.shouldAutoScoll) {
+                //重新启动定时器
+                [self restartTimer];
+            }
         }
             break;
             
@@ -119,6 +173,18 @@
 {
     if (self.ClickedIndexBlock) {
         self.ClickedIndexBlock(self.currentIndex);
+    }
+    if ([self.delegate respondsToSelector:@selector(wdScrollView:didClickedAtIndex:)]) {
+        [self.delegate wdScrollView:self didClickedAtIndex:self.currentIndex];
+    }
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context
+{
+    if (self.titleArr && [change[@"new"] integerValue] < self.titleArr.count) {
+        NSAssert(self.layout, @"显示标题必须设置使用本类提供的方法初始化,否则无法显示对应的标题");
+        NSAssert(self.titleArr.count == self.imageArr.count, @"请检查标题和图片的数量。标题和图片必须一 一对应");
+        self.titleLabel.text = self.titleArr[[change[@"new"] integerValue]];
     }
 }
 
@@ -151,6 +217,9 @@
     id nextObj = self.imageArr[(self.currentIndex + 1) % self.imageArr.count];
     //根据传入的数据不同进行配置
     [self configWithObject:nextObj andButton:self.rightButton];
+    
+    self.pageControl.currentPage = self.currentIndex;
+    
 }
 
 - (void)preview
@@ -181,7 +250,7 @@
     }
     id preObj = self.imageArr[preIndex];
     [self configWithObject:preObj andButton:self.leftButton];
-
+    self.pageControl.currentPage = self.currentIndex;
 }
 
 - (void)configImages
@@ -202,6 +271,23 @@
     }else{
         NSAssert(NO, @"数据源数组不能为空");
     }
+    //配置pageControl
+    self.pageControl.numberOfPages = self.imageArr.count;
+    self.pageControl.currentPage = self.currentIndex;
+    switch (self.layout) {
+        case WDScrollViewLayoutDefault:
+            self.pageControl.frame = CGRectMake(CGRectGetWidth(self.frame) - self.imageArr.count * 20, CGRectGetHeight(self.frame) - TitleHeight, self.imageArr.count * 20, TitleHeight);
+            break;
+        case WDScrollViewLayoutTiltleTopLeftPageControlBottomCenter:
+        {
+            self.pageControl.frame = CGRectMake(0, CGRectGetHeight(self.frame) - TitleHeight, CGRectGetWidth(self.frame), TitleHeight);
+        }
+            break;
+        default:
+             self.pageControl.frame = CGRectMake(0, CGRectGetHeight(self.frame) - TitleHeight, CGRectGetWidth(self.frame), TitleHeight);
+            break;
+    }
+    
 }
 
 - (void)configWithObject:(id)obj andButton:(UIButton*)button
@@ -232,12 +318,17 @@
 
 - (void)pauseTimer
 {
-    [self.timer setFireDate:[NSDate distantFuture]];
+    if ([self.timer isValid]) {
+        [self.timer setFireDate:[NSDate distantFuture]];
+
+    }
 }
 
 - (void)restartTimer
 {
-    [self.timer setFireDate:[NSDate dateWithTimeIntervalSinceNow:self.autoScrollTimeinterval]];
+    if ([self.timer isValid]) {
+        [self.timer setFireDate:[NSDate dateWithTimeIntervalSinceNow:self.autoScrollTimeinterval]];
+    }
 }
 
 #pragma mark - frame helper
@@ -314,7 +405,14 @@
 - (void)setImageArr:(NSArray *)imageArr
 {
     _imageArr = [imageArr copy];
+    
     [self configImages];
+}
+
+- (void)setTitleArr:(NSArray<NSString *> *)titleArr
+{
+    _titleArr = [titleArr copy];
+    self.titleLabel.text = [titleArr firstObject];
 }
 
 - (void)setAutoScrollTimeinterval:(NSInteger)autoScrollTimeinterval
@@ -324,6 +422,22 @@
         [self.timer invalidate];
         self.timer = nil;
         [[NSRunLoop currentRunLoop]addTimer:self.timer forMode:NSDefaultRunLoopMode];
+    }
+}
+
+- (void)setHidePageControlWhenSinglePage:(BOOL)hidePageControlWhenSinglePage
+{
+    _hidePageControlWhenSinglePage = hidePageControlWhenSinglePage;
+    self.pageControl.hidesForSinglePage = hidePageControlWhenSinglePage;
+}
+
+- (void)setShouldAutoScoll:(BOOL)shouldAutoScoll
+{
+    _shouldAutoScoll = shouldAutoScoll;
+    if (shouldAutoScoll == NO) {
+        [self pauseTimer];
+    }else{
+        [self restartTimer];
     }
 }
 
@@ -381,6 +495,34 @@
         _timer = [NSTimer timerWithTimeInterval:self.autoScrollTimeinterval target:self selector:@selector(next) userInfo:nil repeats:YES];
     }
     return _timer;
+}
+
+- (UIPageControl *)pageControl
+{
+    if (_pageControl == nil) {
+        _pageControl = [[UIPageControl alloc]init];
+        _pageControl.hidesForSinglePage = YES;
+    }
+    return _pageControl;
+}
+
+- (UIView *)titleView
+{
+    if (_titleView == nil) {
+        _titleView = [[UIView alloc]init];
+        _titleView.backgroundColor = [[UIColor darkTextColor] colorWithAlphaComponent:0.5];
+    }
+    return _titleView;
+}
+
+- (UILabel *)titleLabel
+{
+    if (_titleLabel == nil) {
+        _titleLabel = [[UILabel alloc]init];
+        _titleLabel.font = [UIFont systemFontOfSize:13];
+        _titleLabel.textColor = [UIColor whiteColor];
+    }
+    return _titleLabel;
 }
 
 @end

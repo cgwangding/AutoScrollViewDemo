@@ -8,7 +8,27 @@
 
 #import <UIKit/UIKit.h>
 
+typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
+    WDScrollViewLayoutDefault = 1,
+    WDScrollViewLayoutTiltleTopLeftPageControlBottomCenter,
+    WDScrollViewLayoutTitleBottomLeftPageControlBottomRight = WDScrollViewLayoutDefault,
+};
+
+@protocol WDScrollViewDelegate;
+
 @interface WDScrollView : UIView
+
+@property (nonatomic, weak) id<WDScrollViewDelegate>delegate;
+
+/**
+ *  初始化方法
+ *
+ *  @param frame  滚动视图的大小
+ *  @param layout 滚动视图上标题和PageControl的布局
+ *
+ *  @return 实例化的对象
+ */
+- (instancetype)initWithFrame:(CGRect)frame andLayout:(WDScrollViewLayout)layout;
 
 /**
  *  图片源数组，可以添加 图片对象（UIImage类型）、图片名称（NSString类型）、图片的URL(NSURL类型)。所有
@@ -17,11 +37,37 @@
 @property (copy, nonatomic) NSArray *imageArr;
 
 /**
- *  自动滚动的间隔
+ *  每张图片对应的标题的
+ */
+@property (copy, nonatomic) NSArray <NSString *>*titleArr;
+
+/**
+ *  是否自动滚动。默认为YES.
+ */
+@property (nonatomic, assign) BOOL shouldAutoScoll;
+
+/**
+ *  自动滚动的间隔,默认2s
  */
 @property (assign, nonatomic) NSInteger  autoScrollTimeinterval;
 
+/**
+ * 当有一页的时候自动隐藏pageControl,默认YES。
+ */
+@property (nonatomic, assign) BOOL hidePageControlWhenSinglePage;
 
+
+/**
+ *  点击的位置，可通过这个方法获取，也可通过代理获取
+ */
 @property (nonatomic, strong) void(^ClickedIndexBlock)(NSInteger index);
+
+@end
+
+@protocol WDScrollViewDelegate <NSObject>
+
+@optional
+
+- (void)wdScrollView:(WDScrollView*)scrollView didClickedAtIndex:(NSInteger)index;
 
 @end
