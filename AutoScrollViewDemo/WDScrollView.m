@@ -50,6 +50,10 @@
 @property (assign, nonatomic) CGPoint startPoint;
 @property (assign, nonatomic) CGPoint endPoint;
 
+/**
+ *  点击的位置，可通过这个方法获取，也可通过代理获取
+ */
+@property (nonatomic, copy) ClickedIndexBlock clickedIndexBlock;
 
 @end
 
@@ -66,6 +70,11 @@
         [self addObserver:self forKeyPath:@"self.currentIndex" options:NSKeyValueObservingOptionNew context:nil];
     }
     return self;
+}
+
+-(void)didClickedIndexBlock:(ClickedIndexBlock)block
+{
+    self.clickedIndexBlock = block;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -171,8 +180,8 @@
 
 - (void)buttonClicked:(UIButton*)button
 {
-    if (self.ClickedIndexBlock) {
-        self.ClickedIndexBlock(self.currentIndex);
+    if (self.clickedIndexBlock) {
+        self.clickedIndexBlock(self.currentIndex);
     }
     if ([self.delegate respondsToSelector:@selector(wdScrollView:didClickedAtIndex:)]) {
         [self.delegate wdScrollView:self didClickedAtIndex:self.currentIndex];

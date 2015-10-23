@@ -8,6 +8,8 @@
 
 #import <UIKit/UIKit.h>
 
+typedef void(^ClickedIndexBlock)(NSInteger index);
+
 typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
     WDScrollViewLayoutDefault = 1,
     WDScrollViewLayoutTiltleTopLeftPageControlBottomCenter,
@@ -60,7 +62,8 @@ typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
 /**
  *  点击的位置，可通过这个方法获取，也可通过代理获取
  */
-@property (nonatomic, strong) void(^ClickedIndexBlock)(NSInteger index);
+- (void)didClickedIndexBlock:(ClickedIndexBlock)block;
+
 
 @end
 

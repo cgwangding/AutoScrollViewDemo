@@ -40,8 +40,8 @@
     label.textAlignment = NSTextAlignmentCenter;
     label.text = @"尚未点击";
     [self.view addSubview:label];
-    
-    [scrollView setClickedIndexBlock:^(NSInteger index) {
+
+    [scrollView didClickedIndexBlock:^(NSInteger index) {
         label.text = [NSString stringWithFormat:@"点击了第%lu页",index];
     }];
     
