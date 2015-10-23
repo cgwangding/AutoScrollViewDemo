@@ -53,7 +53,7 @@
 /**
  *  点击的位置，可通过这个方法获取，也可通过代理获取
  */
-@property (nonatomic, copy) ClickedIndexBlock clickedIndexBlock;
+@property (copy, nonatomic) ClickedIndexBlock clickedIndexBlock;
 
 @end
 

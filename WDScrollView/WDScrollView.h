@@ -8,6 +8,8 @@
 
 #import <UIKit/UIKit.h>
 
+typedef void(^ClickedIndexBlock)(NSInteger index);
+
 typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
     WDScrollViewLayoutDefault = 1,
     WDScrollViewLayoutTiltleTopLeftPageControlBottomCenter,
@@ -18,7 +20,7 @@ typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
 
 @interface WDScrollView : UIView
 
-@property (nonatomic, weak) id<WDScrollViewDelegate>delegate;
+@property (weak, nonatomic) id<WDScrollViewDelegate>delegate;
 
 /**
  *  初始化方法
@@ -39,12 +41,12 @@ typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
 /**
  *  每张图片对应的标题的
  */
-@property (copy, nonatomic) NSArray <NSString *>*titleArr;
+@property (copy, nonatomic) NSArray <NSString*>*titleArr;
 
 /**
  *  是否自动滚动。默认为YES.
  */
-@property (nonatomic, assign) BOOL shouldAutoScoll;
+@property (assign, nonatomic) BOOL shouldAutoScoll;
 
 /**
  *  自动滚动的间隔,默认2s
@@ -54,13 +56,14 @@ typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
 /**
  * 当有一页的时候自动隐藏pageControl,默认YES。
  */
-@property (nonatomic, assign) BOOL hidePageControlWhenSinglePage;
+@property (assign, nonatomic) BOOL hidePageControlWhenSinglePage;
 
 
 /**
  *  点击的位置，可通过这个方法获取，也可通过代理获取
  */
-@property (nonatomic, strong) void(^ClickedIndexBlock)(NSInteger index);
+- (void)didClickedIndexBlock:(ClickedIndexBlock)block;
+
 
 @end
 
