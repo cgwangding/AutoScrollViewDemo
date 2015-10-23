@@ -427,10 +427,12 @@
     [self configImages];
 }
 
-- (void)setTitleArr:(NSArray<NSString *> *)titleArr
+- (void)setTitleArr:(NSArray *)titleArr
 {
     _titleArr = [titleArr copy];
-    [_titleArr makeObjectsPerformSelector:@selector(objectTypeCheck:)];
+    for (id obj in titleArr) {
+        [self objectTypeCheck:obj];
+    }
     self.titleLabel.text = [titleArr firstObject];
     
 }
