@@ -409,6 +409,15 @@
     
 }
 
+#pragma mark - object helper
+
+- (void)objectTypeCheck:(id)obj
+{
+    if (![obj isKindOfClass:[NSString class]]) {
+        NSAssert(NO, @"标题数组中的数据只能是字符串");
+    }
+}
+
 #pragma mark - setter 
 
 - (void)setImageArr:(NSArray *)imageArr
@@ -421,7 +430,9 @@
 - (void)setTitleArr:(NSArray<NSString *> *)titleArr
 {
     _titleArr = [titleArr copy];
+    [_titleArr makeObjectsPerformSelector:@selector(objectTypeCheck:)];
     self.titleLabel.text = [titleArr firstObject];
+    
 }
 
 - (void)setAutoScrollTimeinterval:(NSInteger)autoScrollTimeinterval
