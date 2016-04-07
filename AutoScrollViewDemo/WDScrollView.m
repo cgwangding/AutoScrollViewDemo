@@ -55,12 +55,26 @@
  */
 @property (copy, nonatomic) ClickedIndexBlock clickedIndexBlock;
 
+@property (copy, nonatomic) CurrentIndexBlock currentIndexBlock;
+
+
 @end
 
 @implementation WDScrollView
 
-- (instancetype)initWithFrame:(CGRect)frame andLayout:(WDScrollViewLayout)layout
-{
+#pragma mark - public
+
+-(void)didClickedIndexBlock:(ClickedIndexBlock)block{
+    self.clickedIndexBlock = block;
+}
+
+- (void)addListenerWithCurrentIndexBlock:(CurrentIndexBlock)block{
+    self.currentIndexBlock = block;
+}
+
+#pragma mark - private
+
+- (instancetype)initWithFrame:(CGRect)frame andLayout:(WDScrollViewLayout)layout{
     if (self = [super initWithFrame:frame]) {
         self.layout = layout;
         self.autoScrollTimeinterval = 2;
@@ -72,13 +86,9 @@
     return self;
 }
 
--(void)didClickedIndexBlock:(ClickedIndexBlock)block
-{
-    self.clickedIndexBlock = block;
-}
 
-- (instancetype)initWithFrame:(CGRect)frame
-{
+
+- (instancetype)initWithFrame:(CGRect)frame{
     if (self = [super initWithFrame:frame]) {
         self.autoScrollTimeinterval = 2;
         [[NSRunLoop currentRunLoop]addTimer:self.timer forMode:NSDefaultRunLoopMode];
@@ -89,8 +99,7 @@
     return self;
 }
 
-- (void)setupUIWithFrame:(CGRect)frame
-{
+- (void)setupUIWithFrame:(CGRect)frame{
     [self addSubview:self.panView];
     [self addGestureRecognizer:self.panGestureRecognizer];
     [self.panView addSubview:self.leftButton];
@@ -129,8 +138,7 @@
     }
 }
 
-- (void)panGestureValueChanged:(UIGestureRecognizer*)getsureRecognizer
-{
+- (void)panGestureValueChanged:(UIGestureRecognizer*)getsureRecognizer{
     switch (getsureRecognizer.state) {
         case UIGestureRecognizerStateBegan:
             //手势开始时暂停定时器
@@ -178,8 +186,7 @@
 
 
 
-- (void)buttonClicked:(UIButton*)button
-{
+- (void)buttonClicked:(UIButton*)button{
     if (self.clickedIndexBlock) {
         self.clickedIndexBlock(self.currentIndex);
     }
@@ -188,8 +195,7 @@
     }
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context
-{
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context{
     if (self.titleArr && [change[@"new"] integerValue] < self.titleArr.count) {
         NSAssert(self.layout, @"显示标题必须设置使用本类提供的方法初始化,否则无法显示对应的标题");
         NSAssert(self.titleArr.count == self.imageArr.count, @"请检查标题和图片的数量。标题和图片必须一 一对应");
@@ -199,8 +205,7 @@
 
 #pragma mark - helper
 
-- (void)next
-{
+- (void)next{
     //
     [UIView animateWithDuration:0.25 animations:^{
         [self setButtonFrameLeft:self.centerButton];
@@ -213,10 +218,18 @@
     self.centerButton = self.rightButton;
     self.rightButton = temp;
     
-    //下一页的时候改变当前的位置数据currentIndex
-    if (self.imageArr.count == 1) {
+    if (self.imageArr == nil || self.imageArr.count == 0) {
         return;
     }
+    
+    //下一页的时候改变当前的位置数据currentIndex
+    if (self.imageArr.count == 1) {
+        if (self.currentIndexBlock) {
+            self.currentIndexBlock(self.currentIndex);
+        }
+        return;
+    }
+
     self.currentIndex++;
     //当到最后
     if (self.currentIndex >= self.imageArr.count) {
@@ -229,10 +242,14 @@
     
     self.pageControl.currentPage = self.currentIndex;
     
+    if (self.currentIndexBlock) {
+        self.currentIndexBlock(self.currentIndex);
+    }
+    
+    
 }
 
-- (void)preview
-{
+- (void)preview{
     [UIView animateWithDuration:1 animations:^{
         [self setButtonFrameRight:self.centerButton];
         [self setButtonFrameCenter:self.leftButton];
@@ -244,8 +261,15 @@
     self.centerButton = self.leftButton;
     self.leftButton = temp;
     
+    if (self.imageArr == nil || self.imageArr.count == 0) {
+        return;
+    }
+    
     //下一页的时候改变当前的位置数据currentIndex
     if (self.imageArr.count == 1) {
+        if (self.currentIndexBlock) {
+            self.currentIndexBlock(self.currentIndex);
+        }
         return;
     }
     self.currentIndex--;
@@ -260,10 +284,13 @@
     id preObj = self.imageArr[preIndex];
     [self configWithObject:preObj andButton:self.leftButton];
     self.pageControl.currentPage = self.currentIndex;
+    
+    if (self.currentIndexBlock) {
+        self.currentIndexBlock(self.currentIndex);
+    }
 }
 
-- (void)configImages
-{
+- (void)configImages{
     self.currentIndex = 0;
     if (self.imageArr.count >= 3) {
         [self configWithObject:[self.imageArr firstObject] andButton:self.centerButton];
@@ -299,8 +326,7 @@
     
 }
 
-- (void)configWithObject:(id)obj andButton:(UIButton*)button
-{
+- (void)configWithObject:(id)obj andButton:(UIButton*)button{
     if ([obj isKindOfClass:[NSURL class]]) {
         
         [button setBackgroundImage:nil forState:UIControlStateNormal];
@@ -325,16 +351,14 @@
     }
 }
 
-- (void)pauseTimer
-{
+- (void)pauseTimer{
     if ([self.timer isValid]) {
         [self.timer setFireDate:[NSDate distantFuture]];
 
     }
 }
 
-- (void)restartTimer
-{
+- (void)restartTimer{
     if ([self.timer isValid]) {
         [self.timer setFireDate:[NSDate dateWithTimeIntervalSinceNow:self.autoScrollTimeinterval]];
     }
@@ -342,21 +366,19 @@
 
 #pragma mark - frame helper
 
-- (void)setButtonFrameLeft:(UIButton*)button
-{
+- (void)setButtonFrameLeft:(UIButton*)button{
     button.frame = CGRectMake(0, 0, CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
 }
-- (void)setButtonFrameCenter:(UIButton*)button
-{
+
+- (void)setButtonFrameCenter:(UIButton*)button{
     button.frame = CGRectMake(CGRectGetWidth(self.frame), 0, CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
 }
-- (void)setButtonFrameRight:(UIButton*)button
-{
+
+- (void)setButtonFrameRight:(UIButton*)button{
     button.frame = CGRectMake(CGRectGetWidth(self.frame) * 2, 0, CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
 }
 
-- (void)changeFrameWithOffsetX:(CGFloat)offsetX
-{
+- (void)changeFrameWithOffsetX:(CGFloat)offsetX{
     //定义向左为负，向右为正
     if (offsetX > 0) {
         //移动中间和左边
@@ -379,8 +401,8 @@
     }
 }
 
-- (void)restoreFrameWithMoved:(CGFloat)moved
-{
+- (void)restoreFrameWithMoved:(CGFloat)moved{
+    
     [UIView animateWithDuration:0.25 animations:^{
         [self setButtonFrameLeft:self.leftButton];
         [self setButtonFrameCenter:self.centerButton];
@@ -391,8 +413,7 @@
 
 #pragma mark - HTTP helper
 
-- (void)imageWithURL:(NSURL*)url completion:(void(^)(UIImage *image, NSError *error))competion
-{
+- (void)imageWithURL:(NSURL*)url completion:(void(^)(UIImage *image, NSError *error))competion{
     if (url == nil) {
         NSError *error = [NSError errorWithDomain:@"图片链接为空" code:-1 userInfo:nil];
         competion(nil, error);
@@ -411,8 +432,7 @@
 
 #pragma mark - object helper
 
-- (void)objectTypeCheck:(id)obj
-{
+- (void)objectTypeCheck:(id)obj{
     if (![obj isKindOfClass:[NSString class]]) {
         NSAssert(NO, @"标题数组中的数据只能是字符串");
     }
@@ -420,15 +440,13 @@
 
 #pragma mark - setter 
 
-- (void)setImageArr:(NSArray *)imageArr
-{
+- (void)setImageArr:(NSArray *)imageArr{
     _imageArr = [imageArr copy];
     
     [self configImages];
 }
 
-- (void)setTitleArr:(NSArray *)titleArr
-{
+- (void)setTitleArr:(NSArray<NSString *> *)titleArr{
     _titleArr = [titleArr copy];
     for (id obj in titleArr) {
         [self objectTypeCheck:obj];
@@ -437,8 +455,7 @@
     
 }
 
-- (void)setAutoScrollTimeinterval:(NSInteger)autoScrollTimeinterval
-{
+- (void)setAutoScrollTimeinterval:(NSInteger)autoScrollTimeinterval{
     _autoScrollTimeinterval = autoScrollTimeinterval;
     if ([self.timer isValid]) {
         [self.timer invalidate];
@@ -447,14 +464,12 @@
     }
 }
 
-- (void)setHidePageControlWhenSinglePage:(BOOL)hidePageControlWhenSinglePage
-{
+- (void)setHidePageControlWhenSinglePage:(BOOL)hidePageControlWhenSinglePage{
     _hidePageControlWhenSinglePage = hidePageControlWhenSinglePage;
     self.pageControl.hidesForSinglePage = hidePageControlWhenSinglePage;
 }
 
-- (void)setShouldAutoScoll:(BOOL)shouldAutoScoll
-{
+- (void)setShouldAutoScoll:(BOOL)shouldAutoScoll{
     _shouldAutoScoll = shouldAutoScoll;
     if (shouldAutoScoll == NO) {
         [self pauseTimer];
@@ -465,8 +480,7 @@
 
 #pragma mark - getter
 
-- (UIButton *)leftButton
-{
+- (UIButton *)leftButton{
     if (_leftButton == nil) {
         _leftButton = [UIButton buttonWithType:UIButtonTypeCustom];
         [_leftButton addTarget:self action:@selector(buttonClicked:) forControlEvents:UIControlEventTouchUpInside];
@@ -475,8 +489,7 @@
     return _leftButton;
 }
 
-- (UIButton *)rightButton
-{
+- (UIButton *)rightButton{
     if (_rightButton == nil) {
         _rightButton = [UIButton buttonWithType:UIButtonTypeCustom];
         [_rightButton addTarget:self action:@selector(buttonClicked:) forControlEvents:UIControlEventTouchUpInside];
@@ -484,8 +497,7 @@
     }
     return _rightButton;
 }
-- (UIButton *)centerButton
-{
+- (UIButton *)centerButton{
     if (_centerButton == nil) {
         _centerButton = [UIButton buttonWithType:UIButtonTypeCustom];
         [_centerButton addTarget:self action:@selector(buttonClicked:) forControlEvents:UIControlEventTouchUpInside];
@@ -494,8 +506,7 @@
     return _centerButton;
 }
 
-- (UIView *)panView
-{
+- (UIView *)panView{
     if(_panView == nil){
         _panView = [[UIView alloc]initWithFrame:CGRectMake(-CGRectGetWidth(self.frame), 0, CGRectGetWidth(self.frame) * 3, CGRectGetHeight(self.frame))];
         _panView.backgroundColor = [UIColor clearColor];
@@ -503,24 +514,21 @@
     return _panView;
 }
 
-- (UIPanGestureRecognizer *)panGestureRecognizer
-{
+- (UIPanGestureRecognizer *)panGestureRecognizer{
     if (_panGestureRecognizer == nil) {
         _panGestureRecognizer = [[UIPanGestureRecognizer alloc]initWithTarget:self action:@selector(panGestureValueChanged:)];
     }
     return _panGestureRecognizer;
 }
 
-- (NSTimer *)timer
-{
+- (NSTimer *)timer{
     if (_timer == nil) {
         _timer = [NSTimer timerWithTimeInterval:self.autoScrollTimeinterval target:self selector:@selector(next) userInfo:nil repeats:YES];
     }
     return _timer;
 }
 
-- (UIPageControl *)pageControl
-{
+- (UIPageControl *)pageControl{
     if (_pageControl == nil) {
         _pageControl = [[UIPageControl alloc]init];
         _pageControl.hidesForSinglePage = YES;
@@ -528,8 +536,7 @@
     return _pageControl;
 }
 
-- (UIView *)titleView
-{
+- (UIView *)titleView{
     if (_titleView == nil) {
         _titleView = [[UIView alloc]init];
         _titleView.backgroundColor = [[UIColor darkTextColor] colorWithAlphaComponent:0.5];
@@ -537,8 +544,7 @@
     return _titleView;
 }
 
-- (UILabel *)titleLabel
-{
+- (UILabel *)titleLabel{
     if (_titleLabel == nil) {
         _titleLabel = [[UILabel alloc]init];
         _titleLabel.font = [UIFont systemFontOfSize:13];

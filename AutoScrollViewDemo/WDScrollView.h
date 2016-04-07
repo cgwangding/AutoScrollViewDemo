@@ -9,6 +9,7 @@
 #import <UIKit/UIKit.h>
 
 typedef void(^ClickedIndexBlock)(NSInteger index);
+typedef void(^CurrentIndexBlock)(NSInteger currentIndex);
 
 typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
     WDScrollViewLayoutDefault = 1,
@@ -63,6 +64,13 @@ typedef NS_ENUM(NSUInteger, WDScrollViewLayout) {
  *  点击的位置，可通过这个方法获取，也可通过代理获取
  */
 - (void)didClickedIndexBlock:(ClickedIndexBlock)block;
+
+/**
+ *  每次滚动位置的会调
+ *
+ *  @param block 当前位置的block
+ */
+- (void)addListenerWithCurrentIndexBlock:(CurrentIndexBlock)block;
 
 
 @end
